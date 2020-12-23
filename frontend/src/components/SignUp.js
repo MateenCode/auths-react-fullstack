@@ -2,13 +2,14 @@ import React, { useState, useRef } from "react";
 import Form from "react-validation/build/form";
 import Input from "react-validation/build/input";
 import CheckButton from "react-validation/build/button";
+import { isEmail } from "validator"
 
 // Component
 import FormGroup from './common/FormGroup'
 import ButtonSpinner from './common/ButtonSpinner'
 
 // Helper
-import { login } from '../services/auth.service'
+import { register } from '../services/auth.service'
 import { resMessage } from '../utilities/functions.utilities'
 
 // Function given to react-validator
@@ -22,13 +23,48 @@ const required = (value) => {
   }
 };
 
-const Login = (props) => {
+// Functions that validates username
+const vusername = (value) => {
+    if(value.length < 3 || value.length >= 20){
+        return (
+            <div className="alert alert-danger" role="alert">
+                The username must be between 3 and 20 charaters.
+            </div>
+        )
+    }
+}
+
+// Function that checks is email is in correct format
+const validEmail = (value) => {
+    if(!isEmail(value)){
+        return (
+            <div className="alert alert-danger" role='alert'>
+                This is not a valid email.
+            </div>
+        )
+    }
+}
+
+// Functions that validates passwords
+const vpassword = (value) => {
+        if(value.length < 6 || value.length >= 40){
+        return (<div className="alert alert-danger" role="alert">
+                The password must be between 6 and 40 characters.
+        </div> )
+        }
+}
+
+
+
+
+const SignUp = (props) => {
   const form = useRef();
   const checkBtn = useRef();
 
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [successful, setSuccessful] = useState(false);
   const [message, setMessage] = useState("");
 
   // Stores the username in our username state
@@ -36,6 +72,13 @@ const Login = (props) => {
     const username = e.target.value;
     setUsername(username);
   };
+
+  // Stores the email in the email state
+  const onChangeEmail = (e) => {
+    const email = e.target.value;
+    setEmail(email);
+  };
+
   // Stores the password in our password state
   const onChangePassword = (e) => {
     const password = e.target.value;
@@ -46,30 +89,25 @@ const Login = (props) => {
     e.preventDefault();
     //Prevent message clear them out
     setMessage("")
-    setLoading(true)
+    setSuccessful(false)
 
     // Validates all the fields
     form.current.validateAll();
 
     // Validator stores errors and we can check if error exist
     if(checkBtn.current.context._errors.length === 0){
-        login(username, password).then(
-            () => {
-              props.history.push("/profile");
-              window.location.reload()
+        register(username, email, password).then(
+            (response) => {
+                setMessage(response.data.message)
+                setSuccessful(true)
+
             },
             (error) => {
-             
-                // Setting loading to false and return the error
-                  setLoading(false)
-                 // Checking all the data recieved from our backend
                 setMessage(resMessage(error))
+                setSuccessful(false)
             }
-          );
-    }else {
-        setLoading(false)
+        )
     }
-
   };
   
   return (
@@ -90,7 +128,18 @@ const Login = (props) => {
               name="username"
               value={username}
               onChange={onChangeUsername}
-              validations={[required]}
+              validations={[required, vusername]}
+            />
+         </FormGroup>
+
+         <FormGroup text="email">
+         <Input
+              type="text"
+              className="form-control"
+              name="email"
+              value={email}
+              onChange={onChangeEmail}
+              validations={[required, validEmail]}
             />
          </FormGroup>
 
@@ -101,15 +150,15 @@ const Login = (props) => {
               name="password"
               value={password}
               onChange={onChangePassword}
-              validations={[required]}
+              validations={[required, vpassword]}
             />
             </FormGroup>
 
-            <ButtonSpinner text="Login" loading={loading} />
+            <ButtonSpinner text="Sign Up"  />
 
           {message && (
             <div className="form-group">
-              <div className="alert alert-danger" role="alert">
+              <div className={successful ? "alert alert-success" : "alert alert-danger"} role="alert">
                 {message}
               </div>
             </div>
@@ -122,4 +171,4 @@ const Login = (props) => {
   );
 };
 
-export default Login;
+export default SignUp;
